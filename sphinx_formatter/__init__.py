@@ -19,13 +19,20 @@ def get_str_width(text):
     return sum(wcswidth(c) for c in text)
 
 
-def format_excel_text(output_type='0'):
+def format_excel_text(output_type='0', no_include_header=False):
     text = pyperclip.paste()
     if output_type == '0':
         output = re.sub(r'\r\n(?!$)', r'\n   * - ', text)
         output = output.replace('\t', '\n     - ')
-        output = '.. list-table:: Title\n   :header-rows: 1\n\n   * - ' + \
+        output = [
+            '.. list-table:: Title\n',
+            '   :header-rows: 1\n',
+            '\n   * - ',
             output
+        ]
+        if no_include_header:
+            output.pop(1)
+        output = ''.join(output)
         return output
     else:
         text = re.sub(r'\r\n$', '', text)
@@ -54,7 +61,7 @@ def format_excel_text(output_type='0'):
                 _row_paddings += '+' + '-' * (max_length + 2)
             if len(output) == 0:
                 output += _row_paddings + '+\n'
-            if row_index == 0:
+            if row_index == 0 and not no_include_header:
                 _row_paddings = _row_paddings.replace('-', '=')
             output += _row_values + '|\n'
             output += _row_paddings + '+\n'
@@ -70,7 +77,6 @@ def main():
         help='sub-commands help',
         dest='command'
     )
-
     parser_table = subparsers.add_parser(
         'table',
         help='format clipboard string as Restructured Text table'
@@ -85,9 +91,15 @@ def main():
         action='store_true',
         help='run and show the result, but not copy the result to clipboard'
     )
+    parser_table.add_argument(
+        '--no-include-header',
+        action='store_true',
+        help='the input data not include table header, default is False'
+    )
+
     args = parser.parse_args()
     if args.command == 'table':
-        output = format_excel_text(args.output_type)
+        output = format_excel_text(args.output_type, args.no_include_header)
         print(output)
         if args.dry_run:
             print(
